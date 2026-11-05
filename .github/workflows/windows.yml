@@ -1,0 +1,30 @@
+name: Windows build
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build and unit tests (no external test packages)
+        run: |
+          dotnet build src/PcMonitor -c Release
+          dotnet run --project tests/PcMonitor.Tests -c Release
+      - name: Publish standalone Windows x64
+        run: dotnet publish src/PcMonitor -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o artifacts/publish --source https://api.nuget.org/v3/index.json
+      - name: Background lifecycle smoke test
+        shell: pwsh
+        run: ./scripts/Test-Lifecycle.ps1 -Executable "$pwd/artifacts/publish/PcMonitor.exe"
+      - name: Package scripts and documentation
+        shell: pwsh
+        run: |
+          Copy-Item scripts artifacts/scripts -Recurse
+          Copy-Item README.md artifacts/README.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PcMonitor-win-x64
+          path: artifacts/
