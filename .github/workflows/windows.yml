@@ -28,3 +28,4 @@ jobs:
         with:
           name: PcMonitor-win-x64
           path: artifacts/
+          retention-days: 5
